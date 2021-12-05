@@ -7,14 +7,13 @@ columns = 8
 
 def corner_heatmap(image, rows, columns, spread=1):
     if len(image.shape) == 2:
-        x_height, x_width = image.shape
-        x_channels = 1
+        image_channels = 1
     elif len(image.shape) > 2:
-        x_height, x_width, x_channels = image.shape
+        _, _, image_channels = image.shape
     else:
         raise Exception("Not enough dimensions")
-    if x_channels != 1:
-        raise Exception("only one channel allowed")
+    if image_channels != 1:
+        raise Exception("Only one channel allowed")
     spread = int(spread)
     if spread < 1:
         raise Exception("Spread needs to be greater than 1")
@@ -23,73 +22,72 @@ def corner_heatmap(image, rows, columns, spread=1):
     if columns < 2:
         raise Exception("columns need to be at least 2")
 
-    h = np.array(
+    h1 = np.array(
         [
-            [1, 1, 1, -1, -1, -1],
-            [1, 1, 1, -1, -1, -1],
-            [1, 1, 1, -1, -1, -1],
-            [-1, -1, -1, 1, 1, 1],
-            [-1, -1, -1, 1, 1, 1],
-            [-1, -1, -1, 1, 1, 1],
-        ]
+            [1, 1, 1, 0, 0, -1, -1, -1],
+            [1, 1, 1, 0, 0, -1, -1, -1],
+            [1, 1, 0, 0, 0, 0, -1, -1],
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [-1, -1, 0, 0, 0, 0, 1, 1],
+            [-1, -1, -1, 0, 0, 1, 1, 1],
+            [-1, -1, -1, 0, 0, 1, 1, 1],
+        ],
+        dtype=np.int8,
     )
     h2 = np.array(
         [
-            [1, -1, -1, -1, -1, -1],
-            [1, 1, -1, -1, -1, 1],
-            [1, 1, 1, -1, 1, 1],
-            [1, 1, -1, 1, 1, 1],
-            [1, -1, -1, -1, 1, 1],
-            [-1, -1, -1, -1, -1, 1],
-        ]
+            [0, 0, 1, 1, 1, 1, 0, 0],
+            [0, 0, 0, 1, 1, 0, 0, 0],
+            [-1, 0, 0, 1, 1, 0, 0, -1],
+            [-1, -1, -1, 0, 0, -1, -1, -1],
+            [-1, -1, -1, 0, 0, -1, -1, -1],
+            [-1, 0, 0, 1, 1, 0, 0, -1],
+            [0, 0, 0, 1, 1, 0, 0, 0],
+            [0, 0, 1, 1, 1, 1, 0, 0],
+        ],
+        dtype=np.int8,
     )
-    h_height, h_width = h.shape
+    h1_height, h1_width = h1.shape
     h2_height, h2_width = h2.shape
 
-    workImage = cv2.medianBlur(image, 7)
+    workImage = cv2.medianBlur(image, 5)
     average = np.average(workImage)
-    workImage = np.where(workImage > average, 1, 0).astype(np.uint8)
 
-    highlight = np.zeros_like(workImage, dtype=np.uint8)
+    workImage = np.where(workImage > average, 1, 0).astype(np.int16)
+    # very important type, to force the convolution output to be signed
 
-    height_range = range(x_height - max(h_height, h2_height) * spread)
-    width_range = range(x_width - max(h_width, h2_width) * spread)
-    for x_y in height_range:
-        for x_x in width_range:
-            highlight[x_y + h_height // 2, x_x + h_width // 2] += abs(
-                np.sum(
-                    workImage[
-                        x_y : x_y + spread * h_height : spread,
-                        x_x : x_x + spread * h_width : spread,
-                    ]
-                    * h[:, :]
-                )
-            )
-            highlight[x_y + h2_height // 2, x_x + h2_width // 2] += abs(
-                np.sum(
-                    workImage[
-                        x_y : x_y + spread * h2_height : spread,
-                        x_x : x_x + spread * h2_width : spread,
-                    ]
-                    * h2[:, :]
-                )
-            )
+    highlight1 = cv2.filter2D(workImage, -1, h1, anchor=(h1_height // 2, h1_width // 2))
+    highlight2 = cv2.filter2D(workImage, -1, h2, anchor=(h2_height // 2, h2_width // 2))
+    highlight = np.abs(highlight1) + np.abs(highlight2)
+
+    cv2.imshow("Pre-processed", 240 * workImage.astype(np.uint8))  # can be deactivated
+    cv2.imshow("highlight", 8 * highlight.astype(np.uint8))  # can be deactivated
 
     result = np.zeros_like(workImage, dtype=np.uint8)
-    mask_size = max(h_height, h_width, h2_height, h2_width) * spread
-    for corner in range((rows - 1) * (columns - 1)):
-        max_index = np.unravel_index(np.argmax(highlight, axis=None), highlight.shape)
-        highlight[
-            max_index[0] - mask_size : max_index[0] + mask_size,
-            max_index[1] - mask_size : max_index[1] + mask_size,
+    highlight_overwritable = highlight.copy()
+    mask_size = 10
+    corners = [(0, 0)] * (rows - 1) * (columns - 1)
+    for i in range((rows - 1) * (columns - 1)):
+        max_index = np.unravel_index(
+            np.argmax(highlight_overwritable, axis=None), highlight_overwritable.shape
+        )
+        highlight_overwritable[
+            max(0, max_index[0] - mask_size) : min(
+                max_index[0] + mask_size, highlight_overwritable.shape[0]
+            ),
+            max(0, max_index[1] - mask_size) : min(
+                max_index[1] + mask_size, highlight_overwritable.shape[1]
+            ),
         ] = 0
+        corners[i] = max_index
+
         result[
-            max_index[0] - 1 : max_index[0] + 1,
-            max_index[1] - 1 : max_index[1] + 1,
+            max(0, max_index[0] - 1) : min(max_index[0] + 1, result.shape[0]),
+            max(0, max_index[1] - 1) : min(max_index[1] + 1, result.shape[1]),
         ] = 255
 
-    cv2.normalize(workImage, workImage, 0.0, 255.0, cv2.NORM_MINMAX).astype(np.uint8)
-    return result, workImage
+    return result
 
 
 if __name__ == "__main__":
@@ -97,14 +95,14 @@ if __name__ == "__main__":
     # image = cv2.imread("./easy.png")
     # image = cv2.imread("./easy30.png")
     # image = cv2.imread("./easy45.png")
-    # image = cv2.imread("./photo.png")
-    image = cv2.imread("./photo45.png")
+    image = cv2.imread("./photo.png")
+    # image = cv2.imread("./photo45.png")
     image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
     if image is None:
         raise Exception("Image not found")
 
-    corners, image = corner_heatmap(image, rows, columns, 3)
+    corners = corner_heatmap(image, rows, columns, 3)
 
     # display image
     cv2.imshow("Grey", image)
