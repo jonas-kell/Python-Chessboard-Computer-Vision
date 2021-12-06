@@ -167,10 +167,10 @@ def corner_heatmap(image, rows, columns, spread=1):
         - np.abs(highlight_up)
     )
 
-    cv2.imshow(
-        "Pre-processed", 100 * (1 + workImage.astype(np.uint8))
-    )  # can be deactivated
-    cv2.imshow("highlight", highlight.astype(np.uint8))  # can be deactivated
+    # cv2.imshow(
+    #     "Pre-processed", 100 * (1 + workImage.astype(np.uint8))
+    # )  # can be deactivated
+    # cv2.imshow("highlight", highlight.astype(np.uint8))  # can be deactivated
 
     result = np.zeros_like(workImage, dtype=np.uint8)
     highlight_overwritable = highlight.copy()
@@ -180,7 +180,6 @@ def corner_heatmap(image, rows, columns, spread=1):
         max_index = np.unravel_index(
             np.argmax(highlight_overwritable, axis=None), highlight_overwritable.shape
         )
-        print(highlight[max_index])
         highlight_overwritable[
             max(0, max_index[0] - mask_size) : min(
                 max_index[0] + mask_size, highlight_overwritable.shape[0]
@@ -218,7 +217,11 @@ if __name__ == "__main__":
     corners = corner_heatmap(image, rows, columns, 6)
 
     # display image
+    # cv2.namedWindow("Grey", cv2.WINDOW_NORMAL)
+    # cv2.resizeWindow("Grey", (300, 600))
     cv2.imshow("Grey", image)
+    # cv2.namedWindow("Folded", cv2.WINDOW_NORMAL)
+    # cv2.resizeWindow("Folded", (300, 600))
     cv2.imshow("Folded", corners)
 
     # cleanup
@@ -228,8 +231,10 @@ if __name__ == "__main__":
     # compare with library
     ret, corners = cv2.findChessboardCorners(image, (rows - 1, columns - 1), None)
 
-    if ret == True:
+    if ret == False:
         cv2.drawChessboardCorners(image, (rows - 1, columns - 1), corners, ret)
+        # cv2.namedWindow("cv2:", cv2.WINDOW_NORMAL)
+        # cv2.resizeWindow("cv2:", (300, 600))
         cv2.imshow("cv2:", image)
         cv2.waitKey()
         cv2.destroyAllWindows()
