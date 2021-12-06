@@ -5,6 +5,31 @@ rows = 6
 columns = 8
 
 
+def generate_mask_array(template, spread):
+    assert template.shape[0] == template.shape[1]
+    assert int(spread) == spread
+
+    template_size = template.shape[0]
+    new_size = template_size * spread
+
+    # map the filters but spread out their range
+    new_mask = np.zeros((new_size, new_size), dtype=np.int8)
+    new_mask[0 : new_size // 2 : spread, 0 : new_size // 2 : spread] = template[
+        0 : template_size // 2 : 1, 0 : template_size // 2 : 1
+    ]
+    new_mask[-1 : -1 - new_size // 2 : -spread, 0 : new_size // 2 : spread] = template[
+        -1 : -1 - template_size // 2 : -1, 0 : template_size // 2 : 1
+    ]
+    new_mask[0 : new_size // 2 : spread, -1 : -1 - new_size // 2 : -spread] = template[
+        0 : template_size // 2 : 1, -1 : -1 - template_size // 2 : -1
+    ]
+    new_mask[
+        -1 : -1 - new_size // 2 : -spread, -1 : -1 - new_size // 2 : -spread
+    ] = template[-1 : -1 - template_size // 2 : -1, -1 : -1 - template_size // 2 : -1]
+
+    return new_mask
+
+
 def corner_heatmap(image, rows, columns, spread=1):
     if len(image.shape) == 2:
         image_channels = 1
@@ -22,87 +47,95 @@ def corner_heatmap(image, rows, columns, spread=1):
     if columns < 2:
         raise Exception("columns need to be at least 2")
 
-    h_dimension = 8  # counts for all masks
-    m_c = np.array(
+    m_c_template = np.array(
         [
+            [00, 00, +1, +1, -1, -1, 00, 00],
+            [00, +1, +1, +1, -1, -1, -1, 00],
+            [+1, +1, +1, +1, -1, -1, -1, -1],
             [+1, +1, +1, 00, 00, -1, -1, -1],
-            [+1, +1, +1, 00, 00, -1, -1, -1],
-            [+1, +1, 00, 00, 00, 00, -1, -1],
+            [-1, -1, -1, 00, 00, +1, +1, +1],
+            [-1, -1, -1, -1, +1, +1, +1, +1],
+            [00, -1, -1, -1, +1, +1, +1, 00],
+            [00, 00, -1, -1, +1, +1, 00, 00],
+        ],
+        dtype=np.int8,
+    )
+    m_e_template = np.array(
+        [
+            [00, +1, +1, +1, +1, +1, +1, 00],
+            [-1, 00, +1, +1, +1, +1, 00, -1],
+            [-1, -1, 00, +1, +1, 00, -1, -1],
+            [-1, -1, -1, 00, 00, -1, -1, -1],
+            [-1, -1, -1, 00, 00, -1, -1, -1],
+            [-1, -1, 00, +1, +1, 00, -1, -1],
+            [-1, 00, +1, +1, +1, +1, 00, -1],
+            [00, +1, +1, +1, +1, +1, +1, 00],
+        ],
+        dtype=np.int8,
+    )
+    m_v_template = np.array(
+        [
+            [00, +1, +1, +1, +1, +1, +1, 00],
+            [00, 00, +1, +1, +1, +1, 00, 00],
+            [00, 00, 00, +1, +1, 00, 00, 00],
             [00, 00, 00, 00, 00, 00, 00, 00],
             [00, 00, 00, 00, 00, 00, 00, 00],
+            [00, 00, 00, -1, -1, 00, 00, 00],
+            [00, 00, -1, -1, -1, -1, 00, 00],
+            [00, -1, -1, -1, -1, -1, -1, 00],
+        ],
+        dtype=np.int8,
+    )
+    m_h_template = np.array(
+        [
+            [00, 00, 00, 00, 00, 00, 00, 00],
+            [-1, 00, 00, 00, 00, 00, 00, +1],
             [-1, -1, 00, 00, 00, 00, +1, +1],
             [-1, -1, -1, 00, 00, +1, +1, +1],
             [-1, -1, -1, 00, 00, +1, +1, +1],
-        ],
-        dtype=np.int8,
-    )
-    m_e = np.array(
-        [
-            [00, 00, +1, +1, +1, +1, 00, 00],
-            [00, 00, 00, +1, +1, 00, 00, 00],
-            [-1, 00, 00, +1, +1, 00, 00, -1],
-            [-1, -1, -1, 00, 00, -1, -1, -1],
-            [-1, -1, -1, 00, 00, -1, -1, -1],
-            [-1, 00, 00, +1, +1, 00, 00, -1],
-            [00, 00, 00, +1, +1, 00, 00, 00],
-            [00, 00, +1, +1, +1, +1, 00, 00],
-        ],
-        dtype=np.int8,
-    )
-    m_v = np.array(
-        [
-            [00, 00, +1, +1, +1, +1, 00, 00],
-            [00, 00, 00, +1, +1, 00, 00, 00],
-            [00, 00, 00, +1, +1, 00, 00, 00],
-            [00, 00, 00, 00, 00, 00, 00, 00],
-            [00, 00, 00, 00, 00, 00, 00, 00],
-            [00, 00, 00, -1, -1, 00, 00, 00],
-            [00, 00, 00, -1, -1, 00, 00, 00],
-            [00, 00, -1, -1, -1, -1, 00, 00],
-        ],
-        dtype=np.int8,
-    )
-    m_h = np.array(
-        [
-            [00, 00, 00, 00, 00, 00, 00, 00],
-            [00, 00, 00, 00, 00, 00, 00, 00],
-            [-1, 00, 00, 00, 00, 00, 00, +1],
-            [-1, -1, -1, 00, 00, +1, +1, +1],
-            [-1, -1, -1, 00, 00, +1, +1, +1],
+            [-1, -1, 00, 00, 00, 00, +1, +1],
             [-1, 00, 00, 00, 00, 00, 00, +1],
             [00, 00, 00, 00, 00, 00, 00, 00],
-            [00, 00, 00, 00, 00, 00, 00, 00],
         ],
         dtype=np.int8,
     )
-    m_d = np.array(
+    m_d_template = np.array(
         [
-            [+1, +1, +1, 00, 00, 00, 00, 00],
-            [+1, +1, +1, 00, 00, 00, 00, 00],
-            [+1, +1, 00, 00, 00, 00, 00, 00],
-            [00, 00, 00, 00, 00, 00, 00, 00],
-            [00, 00, 00, 00, 00, 00, 00, 00],
-            [00, 00, 00, 00, 00, 00, -1, -1],
-            [00, 00, 00, 00, 00, -1, -1, -1],
-            [00, 00, 00, 00, 00, -1, -1, -1],
+            [00, 00, -1, -1, 00, 00, 00, 00],
+            [00, -1, -1, -1, 00, 00, 00, 00],
+            [-1, -1, -1, -1, 00, 00, 00, 00],
+            [-1, -1, -1, 00, 00, 00, 00, 00],
+            [00, 00, 00, 00, 00, +1, +1, +1],
+            [00, 00, 00, 00, +1, +1, +1, +1],
+            [00, 00, 00, 00, +1, +1, +1, 00],
+            [00, 00, 00, 00, +1, +1, 00, 00],
         ],
         dtype=np.int8,
     )
-    m_u = np.array(
+    m_u_template = np.array(
         [
-            [00, 00, 00, 00, 00, -1, -1, -1],
-            [00, 00, 00, 00, 00, -1, -1, -1],
-            [00, 00, 00, 00, 00, 00, -1, -1],
-            [00, 00, 00, 00, 00, 00, 00, 00],
-            [00, 00, 00, 00, 00, 00, 00, 00],
-            [+1, +1, 00, 00, 00, 00, 00, 00],
-            [+1, +1, +1, 00, 00, 00, 00, 00],
-            [+1, +1, +1, 00, 00, 00, 00, 00],
+            [00, 00, 00, 00, +1, +1, 00, 00],
+            [00, 00, 00, 00, +1, +1, +1, 00],
+            [00, 00, 00, 00, +1, +1, +1, +1],
+            [00, 00, 00, 00, 00, +1, +1, +1],
+            [-1, -1, -1, 00, 00, 00, 00, 00],
+            [-1, -1, -1, -1, 00, 00, 00, 00],
+            [00, -1, -1, -1, 00, 00, 00, 00],
+            [00, 00, -1, -1, 00, 00, 00, 00],
         ],
         dtype=np.int8,
     )
 
-    workImage = cv2.medianBlur(image, 5)
+    m_c = generate_mask_array(m_c_template, spread)
+    m_e = generate_mask_array(m_e_template, spread)
+    m_v = generate_mask_array(m_v_template, spread)
+    m_h = generate_mask_array(m_h_template, spread)
+    m_d = generate_mask_array(m_d_template, spread)
+    m_u = generate_mask_array(m_u_template, spread)
+    h_dimension = m_u.shape[0]  # counts for all masks
+
+    # blur parameter needs to be un-even
+    workImage = cv2.medianBlur(image, spread + 1 if spread % 2 == 0 else spread)
     average = np.average(workImage)
     workImage = np.where(workImage > average, 1, -1).astype(np.int16)
     # very important type, to force the convolution output to be signed
@@ -141,12 +174,13 @@ def corner_heatmap(image, rows, columns, spread=1):
 
     result = np.zeros_like(workImage, dtype=np.uint8)
     highlight_overwritable = highlight.copy()
-    mask_size = h_dimension
+    mask_size = h_dimension  # assumption of what is necessary to cover
     corners = [(0, 0)] * (rows - 1) * (columns - 1)
     for i in range((rows - 1) * (columns - 1)):
         max_index = np.unravel_index(
             np.argmax(highlight_overwritable, axis=None), highlight_overwritable.shape
         )
+        print(highlight[max_index])
         highlight_overwritable[
             max(0, max_index[0] - mask_size) : min(
                 max_index[0] + mask_size, highlight_overwritable.shape[0]
@@ -181,7 +215,7 @@ if __name__ == "__main__":
     if image is None:
         raise Exception("Image not found")
 
-    corners = corner_heatmap(image, rows, columns, 3)
+    corners = corner_heatmap(image, rows, columns, 6)
 
     # display image
     cv2.imshow("Grey", image)
