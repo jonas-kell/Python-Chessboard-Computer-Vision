@@ -100,7 +100,7 @@ def corner_heatmap(image, rows, columns, spread=1):
         ],
         dtype=np.int8,
     )
-    m_height, m_width = m_c.shape  # counts for all masks
+    h_dimension, _ = m_c.shape  # counts for all masks
 
     workImage = cv2.medianBlur(image, 5)
     average = np.average(workImage)
@@ -108,22 +108,22 @@ def corner_heatmap(image, rows, columns, spread=1):
     # very important type, to force the convolution output to be signed
 
     highlight_corner = cv2.filter2D(
-        workImage, -1, m_c, anchor=(m_height // 2, m_width // 2)
+        workImage, -1, m_c, anchor=(h_dimension // 2, h_dimension // 2)
     )
     highlight_edges = cv2.filter2D(
-        workImage, -1, m_e, anchor=(m_height // 2, m_width // 2)
+        workImage, -1, m_e, anchor=(h_dimension // 2, h_dimension // 2)
     )
     highlight_vertical = cv2.filter2D(
-        workImage, -1, m_v, anchor=(m_height // 2, m_width // 2)
+        workImage, -1, m_v, anchor=(h_dimension // 2, h_dimension // 2)
     )
     highlight_horizontal = cv2.filter2D(
-        workImage, -1, m_h, anchor=(m_height // 2, m_width // 2)
+        workImage, -1, m_h, anchor=(h_dimension // 2, h_dimension // 2)
     )
     highlight_down = cv2.filter2D(
-        workImage, -1, m_d, anchor=(m_height // 2, m_width // 2)
+        workImage, -1, m_d, anchor=(h_dimension // 2, h_dimension // 2)
     )
     highlight_up = cv2.filter2D(
-        workImage, -1, m_u, anchor=(m_height // 2, m_width // 2)
+        workImage, -1, m_u, anchor=(h_dimension // 2, h_dimension // 2)
     )
     highlight = (
         np.abs(highlight_corner)
@@ -135,11 +135,11 @@ def corner_heatmap(image, rows, columns, spread=1):
     )
 
     cv2.imshow("Pre-processed", 240 * workImage.astype(np.uint8))  # can be deactivated
-    cv2.imshow("highlight", 8 * highlight.astype(np.uint8))  # can be deactivated
+    cv2.imshow("highlight", highlight.astype(np.uint8))  # can be deactivated
 
     result = np.zeros_like(workImage, dtype=np.uint8)
     highlight_overwritable = highlight.copy()
-    mask_size = 10
+    mask_size = h_dimension
     corners = [(0, 0)] * (rows - 1) * (columns - 1)
     for i in range((rows - 1) * (columns - 1)):
         max_index = np.unravel_index(
@@ -156,8 +156,12 @@ def corner_heatmap(image, rows, columns, spread=1):
         corners[i] = max_index
 
         result[
-            max(0, max_index[0] - 1) : min(max_index[0] + 1, result.shape[0]),
-            max(0, max_index[1] - 1) : min(max_index[1] + 1, result.shape[1]),
+            max(0, max_index[0] - h_dimension // 2) : min(
+                max_index[0] + h_dimension // 2, result.shape[0]
+            ),
+            max(0, max_index[1] - h_dimension // 2) : min(
+                max_index[1] + h_dimension // 2, result.shape[1]
+            ),
         ] = 255
 
     return result
