@@ -168,8 +168,8 @@ if __name__ == "__main__":
     # image = cv2.imread("./easy.png")
     # image = cv2.imread("./easy30.png")
     # image = cv2.imread("./easy45.png")
-    # image = cv2.imread("./photo.png")
-    image = cv2.imread("./photo45.png")
+    image = cv2.imread("./photo.png")
+    # image = cv2.imread("./photo45.png")
     image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
     if image is None:
