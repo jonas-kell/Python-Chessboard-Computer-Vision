@@ -95,8 +95,8 @@ if __name__ == "__main__":
     # image = cv2.imread("./easy.png")
     # image = cv2.imread("./easy30.png")
     # image = cv2.imread("./easy45.png")
-    image = cv2.imread("./photo.png")
-    # image = cv2.imread("./photo45.png")
+    # image = cv2.imread("./photo.png")
+    image = cv2.imread("./photo45.png")
     image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
     if image is None:
@@ -111,3 +111,14 @@ if __name__ == "__main__":
     # cleanup
     cv2.waitKey()
     cv2.destroyAllWindows()
+
+    # compare with library
+    ret, corners = cv2.findChessboardCorners(image, (rows - 1, columns - 1), None)
+
+    if ret == True:
+        cv2.drawChessboardCorners(image, (rows - 1, columns - 1), corners, ret)
+        cv2.imshow("cv2:", image)
+        cv2.waitKey()
+        cv2.destroyAllWindows()
+    else:
+        print("CV2 is bad...")
