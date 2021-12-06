@@ -22,6 +22,7 @@ def corner_heatmap(image, rows, columns, spread=1):
     if columns < 2:
         raise Exception("columns need to be at least 2")
 
+    h_dimension = 8  # counts for all masks
     m_c = np.array(
         [
             [+1, +1, +1, 00, 00, -1, -1, -1],
@@ -100,11 +101,10 @@ def corner_heatmap(image, rows, columns, spread=1):
         ],
         dtype=np.int8,
     )
-    h_dimension, _ = m_c.shape  # counts for all masks
 
     workImage = cv2.medianBlur(image, 5)
     average = np.average(workImage)
-    workImage = np.where(workImage > average, 1, 0).astype(np.int16)
+    workImage = np.where(workImage > average, 1, -1).astype(np.int16)
     # very important type, to force the convolution output to be signed
 
     highlight_corner = cv2.filter2D(
@@ -134,7 +134,9 @@ def corner_heatmap(image, rows, columns, spread=1):
         - np.abs(highlight_up)
     )
 
-    cv2.imshow("Pre-processed", 240 * workImage.astype(np.uint8))  # can be deactivated
+    cv2.imshow(
+        "Pre-processed", 100 * (1 + workImage.astype(np.uint8))
+    )  # can be deactivated
     cv2.imshow("highlight", highlight.astype(np.uint8))  # can be deactivated
 
     result = np.zeros_like(workImage, dtype=np.uint8)
@@ -172,8 +174,8 @@ if __name__ == "__main__":
     # image = cv2.imread("./easy.png")
     # image = cv2.imread("./easy30.png")
     # image = cv2.imread("./easy45.png")
-    image = cv2.imread("./photo.png")
-    # image = cv2.imread("./photo45.png")
+    # image = cv2.imread("./photo.png")
+    image = cv2.imread("./photo45.png")
     image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
     if image is None:
