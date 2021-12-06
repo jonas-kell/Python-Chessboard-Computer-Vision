@@ -22,7 +22,7 @@ def corner_heatmap(image, rows, columns, spread=1):
     if columns < 2:
         raise Exception("columns need to be at least 2")
 
-    h1 = np.array(
+    m_c = np.array(
         [
             [+1, +1, +1, 00, 00, -1, -1, -1],
             [+1, +1, +1, 00, 00, -1, -1, -1],
@@ -35,7 +35,7 @@ def corner_heatmap(image, rows, columns, spread=1):
         ],
         dtype=np.int8,
     )
-    h2 = np.array(
+    m_e = np.array(
         [
             [00, 00, +1, +1, +1, +1, 00, 00],
             [00, 00, 00, +1, +1, 00, 00, 00],
@@ -48,18 +48,91 @@ def corner_heatmap(image, rows, columns, spread=1):
         ],
         dtype=np.int8,
     )
-    h1_height, h1_width = h1.shape
-    h2_height, h2_width = h2.shape
+    m_v = np.array(
+        [
+            [00, 00, +1, +1, +1, +1, 00, 00],
+            [00, 00, 00, +1, +1, 00, 00, 00],
+            [00, 00, 00, +1, +1, 00, 00, 00],
+            [00, 00, 00, 00, 00, 00, 00, 00],
+            [00, 00, 00, 00, 00, 00, 00, 00],
+            [00, 00, 00, -1, -1, 00, 00, 00],
+            [00, 00, 00, -1, -1, 00, 00, 00],
+            [00, 00, -1, -1, -1, -1, 00, 00],
+        ],
+        dtype=np.int8,
+    )
+    m_h = np.array(
+        [
+            [00, 00, 00, 00, 00, 00, 00, 00],
+            [00, 00, 00, 00, 00, 00, 00, 00],
+            [-1, 00, 00, 00, 00, 00, 00, +1],
+            [-1, -1, -1, 00, 00, +1, +1, +1],
+            [-1, -1, -1, 00, 00, +1, +1, +1],
+            [-1, 00, 00, 00, 00, 00, 00, +1],
+            [00, 00, 00, 00, 00, 00, 00, 00],
+            [00, 00, 00, 00, 00, 00, 00, 00],
+        ],
+        dtype=np.int8,
+    )
+    m_d = np.array(
+        [
+            [+1, +1, +1, 00, 00, 00, 00, 00],
+            [+1, +1, +1, 00, 00, 00, 00, 00],
+            [+1, +1, 00, 00, 00, 00, 00, 00],
+            [00, 00, 00, 00, 00, 00, 00, 00],
+            [00, 00, 00, 00, 00, 00, 00, 00],
+            [00, 00, 00, 00, 00, 00, -1, -1],
+            [00, 00, 00, 00, 00, -1, -1, -1],
+            [00, 00, 00, 00, 00, -1, -1, -1],
+        ],
+        dtype=np.int8,
+    )
+    m_u = np.array(
+        [
+            [00, 00, 00, 00, 00, -1, -1, -1],
+            [00, 00, 00, 00, 00, -1, -1, -1],
+            [00, 00, 00, 00, 00, 00, -1, -1],
+            [00, 00, 00, 00, 00, 00, 00, 00],
+            [00, 00, 00, 00, 00, 00, 00, 00],
+            [+1, +1, 00, 00, 00, 00, 00, 00],
+            [+1, +1, +1, 00, 00, 00, 00, 00],
+            [+1, +1, +1, 00, 00, 00, 00, 00],
+        ],
+        dtype=np.int8,
+    )
+    m_height, m_width = m_c.shape  # counts for all masks
 
     workImage = cv2.medianBlur(image, 5)
     average = np.average(workImage)
-
     workImage = np.where(workImage > average, 1, 0).astype(np.int16)
     # very important type, to force the convolution output to be signed
 
-    highlight1 = cv2.filter2D(workImage, -1, h1, anchor=(h1_height // 2, h1_width // 2))
-    highlight2 = cv2.filter2D(workImage, -1, h2, anchor=(h2_height // 2, h2_width // 2))
-    highlight = np.abs(highlight1) + np.abs(highlight2)
+    highlight_corner = cv2.filter2D(
+        workImage, -1, m_c, anchor=(m_height // 2, m_width // 2)
+    )
+    highlight_edges = cv2.filter2D(
+        workImage, -1, m_e, anchor=(m_height // 2, m_width // 2)
+    )
+    highlight_vertical = cv2.filter2D(
+        workImage, -1, m_v, anchor=(m_height // 2, m_width // 2)
+    )
+    highlight_horizontal = cv2.filter2D(
+        workImage, -1, m_h, anchor=(m_height // 2, m_width // 2)
+    )
+    highlight_down = cv2.filter2D(
+        workImage, -1, m_d, anchor=(m_height // 2, m_width // 2)
+    )
+    highlight_up = cv2.filter2D(
+        workImage, -1, m_u, anchor=(m_height // 2, m_width // 2)
+    )
+    highlight = (
+        np.abs(highlight_corner)
+        + np.abs(highlight_edges)
+        - np.abs(highlight_vertical)
+        - np.abs(highlight_horizontal)
+        - np.abs(highlight_down)
+        - np.abs(highlight_up)
+    )
 
     cv2.imshow("Pre-processed", 240 * workImage.astype(np.uint8))  # can be deactivated
     cv2.imshow("highlight", 8 * highlight.astype(np.uint8))  # can be deactivated
