@@ -16,9 +16,14 @@ while True:
     ret, frame = vid.read()
 
     # calculate the solution
-    frameGrey = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    corners = corner_heatmap(frameGrey, rows, columns, 3)
-    cv2.imshow("frame", corners)
+    if True:
+        frameGrey = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        corners = corner_heatmap(frameGrey, rows, columns, 3)
+        cv2.imshow("frame", corners)
+    else:
+        ret, corners = cv2.findChessboardCorners(frame, (rows - 1, columns - 1), None)
+        cv2.drawChessboardCorners(frame, (rows - 1, columns - 1), corners, ret)
+        cv2.imshow("frame", frame)
 
     # the 'q' button is set as the
     # quitting button you may use any
