@@ -30,6 +30,18 @@ def generate_mask_array(template, spread):
     return new_mask
 
 
+def normalArrayToCV2CompatibleCorners(array):
+    length = len(array)
+    assert length > 0
+    tuple_length = len(array[0])
+    assert tuple_length == 2
+
+    result = np.zeros((length, 1, 2), dtype=np.float32)
+    result[:, 0, ::-1] = array
+
+    return result
+
+
 def corner_heatmap(image, rows, columns, spread=1):
     if len(image.shape) == 2:
         image_channels = 1
@@ -175,10 +187,11 @@ def corner_heatmap(image, rows, columns, spread=1):
     result = np.zeros_like(workImage, dtype=np.uint8)
     highlight_overwritable = highlight.copy()
     mask_size = h_dimension  # assumption of what is necessary to cover
-    corners = [(0, 0)] * (rows - 1) * (columns - 1)
+    corners = [(0, 0)] * (columns - 1) * (rows - 1)
     for i in range((rows - 1) * (columns - 1)):
         max_index = np.unravel_index(
-            np.argmax(highlight_overwritable, axis=None), highlight_overwritable.shape
+            np.argmax(highlight_overwritable, axis=None),
+            highlight_overwritable.shape,
         )
         highlight_overwritable[
             max(0, max_index[0] - mask_size) : min(
@@ -190,16 +203,7 @@ def corner_heatmap(image, rows, columns, spread=1):
         ] = 0
         corners[i] = max_index
 
-        result[
-            max(0, max_index[0] - h_dimension // 2) : min(
-                max_index[0] + h_dimension // 2, result.shape[0]
-            ),
-            max(0, max_index[1] - h_dimension // 2) : min(
-                max_index[1] + h_dimension // 2, result.shape[1]
-            ),
-        ] = 255
-
-    return result
+    return corners
 
 
 if __name__ == "__main__":
@@ -208,8 +212,8 @@ if __name__ == "__main__":
     # image = cv2.imread("./easy30.png")
     # image = cv2.imread("./easy45.png")
     # image = cv2.imread("./photo.png")
-    image = cv2.imread("./photo45.png")
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    colorImage = cv2.imread("./photo45.png")
+    image = cv2.cvtColor(colorImage, cv2.COLOR_BGR2GRAY)
 
     if image is None:
         raise Exception("Image not found")
@@ -217,12 +221,15 @@ if __name__ == "__main__":
     corners = corner_heatmap(image, rows, columns, 6)
 
     # display image
-    # cv2.namedWindow("Grey", cv2.WINDOW_NORMAL)
-    # cv2.resizeWindow("Grey", (300, 600))
-    cv2.imshow("Grey", image)
-    # cv2.namedWindow("Folded", cv2.WINDOW_NORMAL)
-    # cv2.resizeWindow("Folded", (300, 600))
-    cv2.imshow("Folded", corners)
+    # cv2.namedWindow("Corners", cv2.WINDOW_NORMAL)
+    # cv2.resizeWindow("Corners", (300, 600))
+    imageWithCorners = cv2.drawChessboardCorners(
+        colorImage,
+        (rows - 1, columns - 1),
+        normalArrayToCV2CompatibleCorners(corners),
+        True,
+    )
+    cv2.imshow("Corners", imageWithCorners)
 
     # cleanup
     cv2.waitKey()

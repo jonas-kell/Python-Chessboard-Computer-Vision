@@ -1,10 +1,10 @@
 # import the opencv library
 import cv2
-from myChessboardDetection import corner_heatmap
+import numpy as np
+from myChessboardDetection import corner_heatmap, normalArrayToCV2CompatibleCorners
 
 rows = 6
 columns = 8
-
 
 # define a video capture object
 vid = cv2.VideoCapture(1)
@@ -19,7 +19,13 @@ while True:
     if True:
         frameGrey = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         corners = corner_heatmap(frameGrey, rows, columns, 3)
-        cv2.imshow("frame", corners)
+        cv2.drawChessboardCorners(
+            frame,
+            (rows - 1, columns - 1),
+            normalArrayToCV2CompatibleCorners(corners),
+            True,
+        )
+        cv2.imshow("frame", frame)
     else:
         ret, corners = cv2.findChessboardCorners(frame, (rows - 1, columns - 1), None)
         cv2.drawChessboardCorners(frame, (rows - 1, columns - 1), corners, ret)
