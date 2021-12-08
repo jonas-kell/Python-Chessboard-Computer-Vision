@@ -1,5 +1,6 @@
 import numpy as np
 import cv2
+from numpy.core.defchararray import index
 
 rows = 6
 columns = 8
@@ -49,8 +50,6 @@ def corner_heatmap(image, rows, columns, spread=1):
         _, _, image_channels = image.shape
     else:
         raise Exception("Not enough dimensions")
-    if image_channels != 1:
-        raise Exception("Only one channel allowed")
     spread = int(spread)
     if spread < 1:
         raise Exception("Spread needs to be greater than 1")
@@ -146,11 +145,21 @@ def corner_heatmap(image, rows, columns, spread=1):
     m_u = generate_mask_array(m_u_template, spread)
     h_dimension = m_u.shape[0]  # counts for all masks
 
-    # blur parameter needs to be un-even
-    workImage = cv2.medianBlur(image, spread + 1 if spread % 2 == 0 else spread)
-    average = np.average(workImage)
-    workImage = np.where(workImage > average, 1, -1).astype(np.int16)
-    # very important type, to force the convolution output to be signed
+    if image_channels == 1:  # greyscale
+        # blur parameter needs to be un-even
+        blurred = cv2.medianBlur(image, spread + 1 if spread % 2 == 0 else spread)
+        msk = cv2.threshold(blurred, 0, 255, cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)[1]
+    else:  # color
+        # blur parameter needs to be un-even
+        hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+        hsv = cv2.medianBlur(hsv, spread + 1 if spread % 2 == 0 else spread)
+        # OpenCV uses H: 0-179, S: 0-255, V: 0-255
+        lwr = np.array([0, 0, 135])
+        upr = np.array([179, 120, 255])
+        msk = cv2.inRange(hsv, lwr, upr)  # filter for white
+
+    workImage = np.where(msk > 0, 1, -1).astype(np.int16)
+    # np.int16 is a very important type here, to force the convolution output to be signed
 
     highlight_corner = cv2.filter2D(
         workImage, -1, m_c, anchor=(h_dimension // 2, h_dimension // 2)
@@ -184,13 +193,12 @@ def corner_heatmap(image, rows, columns, spread=1):
     # )  # can be deactivated
     # cv2.imshow("highlight", highlight.astype(np.uint8))  # can be deactivated
 
-    result = np.zeros_like(workImage, dtype=np.uint8)
     highlight_overwritable = highlight.copy()
     mask_size = h_dimension  # assumption of what is necessary to cover
     corners = []
     biggest = 0
     smallest = 0
-    for i in range((rows - 1) * (columns - 1) + 4):
+    for i in range((rows - 1) * (columns - 1)):
         max_index = np.unravel_index(
             np.argmax(highlight_overwritable, axis=None),
             highlight_overwritable.shape,
@@ -214,7 +222,7 @@ def corner_heatmap(image, rows, columns, spread=1):
         % (biggest, smallest, np.max(highlight_overwritable))
     )
 
-    return corners
+    return corners, ((workImage + 1) * 100).astype(np.uint8)
 
 
 if __name__ == "__main__":
@@ -223,24 +231,24 @@ if __name__ == "__main__":
     # image = cv2.imread("./easy30.png")
     # image = cv2.imread("./easy45.png")
     # image = cv2.imread("./photo.png")
-    colorImage = cv2.imread("./photo45.png")
-    image = cv2.cvtColor(colorImage, cv2.COLOR_BGR2GRAY)
+    image = cv2.imread("./photo45.png")
+    # image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
     if image is None:
         raise Exception("Image not found")
 
-    corners = corner_heatmap(image, rows, columns, 6)
+    corners, processed = corner_heatmap(image, rows, columns, 6)
 
     # display image
     # cv2.namedWindow("Corners", cv2.WINDOW_NORMAL)
     # cv2.resizeWindow("Corners", (300, 600))
     imageWithCorners = cv2.drawChessboardCorners(
-        colorImage,
+        image,
         (rows - 1, columns - 1),
         normalArrayToCV2CompatibleCorners(corners),
         True,
     )
-    cv2.imshow("Corners", imageWithCorners)
+    cv2.imshow("Corners", processed)
 
     # cleanup
     cv2.waitKey()

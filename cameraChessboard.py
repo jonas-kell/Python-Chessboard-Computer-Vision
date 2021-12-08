@@ -17,15 +17,14 @@ while True:
 
     # calculate the solution
     if True:
-        frameGrey = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        corners = corner_heatmap(frameGrey, rows, columns, 3)
+        corners, processed = corner_heatmap(frame, rows, columns, 3)
         cv2.drawChessboardCorners(
-            frame,
-            (rows - 1, columns),
+            processed,
+            (rows - 1, columns - 1),
             normalArrayToCV2CompatibleCorners(corners),
             False,
         )
-        cv2.imshow("frame", frame)
+        cv2.imshow("frame", processed)
     else:
         ret, corners = cv2.findChessboardCorners(frame, (rows - 1, columns - 1), None)
         cv2.drawChessboardCorners(frame, (rows - 1, columns - 1), corners, ret)
