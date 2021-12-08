@@ -158,23 +158,6 @@ def corner_heatmap(image, rows, columns, spread=1):
         upr = np.array([179, 120, 255])
         msk = cv2.inRange(hsv, lwr, upr)  # filter for white
 
-    # mask tiny white blobs
-    output = cv2.connectedComponentsWithStats(msk, connectivity=4)
-    (numLabels, labels, stats, centroids) = output
-    areaThreshhold = 500  # hardcoded
-    for i in range(1, numLabels):
-        area = stats[i, cv2.CC_STAT_AREA]
-        width = stats[i, cv2.CC_STAT_WIDTH]
-        height = stats[i, cv2.CC_STAT_HEIGHT]
-        if area < areaThreshhold:
-            center_x, center_y = centroids[i]
-            center_x = int(center_x)
-            center_y = int(center_y)
-            msk[
-                center_y - height : center_y + height,
-                center_x - width : center_x + width,
-            ] = 0
-
     workImage = np.where(msk > 0, 1, -1).astype(np.int16)
     # np.int16 is a very important type here, to force the convolution output to be signed
 
