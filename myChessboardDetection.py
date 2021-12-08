@@ -187,12 +187,18 @@ def corner_heatmap(image, rows, columns, spread=1):
     result = np.zeros_like(workImage, dtype=np.uint8)
     highlight_overwritable = highlight.copy()
     mask_size = h_dimension  # assumption of what is necessary to cover
-    corners = [(0, 0)] * (columns - 1) * (rows - 1)
-    for i in range((rows - 1) * (columns - 1)):
+    corners = []
+    biggest = 0
+    smallest = 0
+    for i in range((rows - 1) * (columns - 1) + 4):
         max_index = np.unravel_index(
             np.argmax(highlight_overwritable, axis=None),
             highlight_overwritable.shape,
         )
+        if i == 0:
+            biggest = highlight_overwritable[max_index]
+        if i == (rows - 1) * (columns - 1) - 1:
+            smallest = highlight_overwritable[max_index]
         highlight_overwritable[
             max(0, max_index[0] - mask_size) : min(
                 max_index[0] + mask_size, highlight_overwritable.shape[0]
@@ -201,7 +207,12 @@ def corner_heatmap(image, rows, columns, spread=1):
                 max_index[1] + mask_size, highlight_overwritable.shape[1]
             ),
         ] = 0
-        corners[i] = max_index
+        corners.append(max_index)
+
+    print(
+        "Biggest %d, Smallest %d, Next %d"
+        % (biggest, smallest, np.max(highlight_overwritable))
+    )
 
     return corners
 

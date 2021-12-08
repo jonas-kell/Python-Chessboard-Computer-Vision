@@ -21,9 +21,9 @@ while True:
         corners = corner_heatmap(frameGrey, rows, columns, 3)
         cv2.drawChessboardCorners(
             frame,
-            (rows - 1, columns - 1),
+            (rows - 1, columns),
             normalArrayToCV2CompatibleCorners(corners),
-            True,
+            False,
         )
         cv2.imshow("frame", frame)
     else:
