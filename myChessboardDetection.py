@@ -201,7 +201,7 @@ def corner_heatmap(image, rows, columns, spread=1):
     number_of_candidates_to_sample = int(
         (rows - 1) * (columns - 1) * 1.3
     )  # give the algorithm a bit of leeway
-    min_detection_value = 20
+    min_detection_value = 10
     for i in range(number_of_candidates_to_sample):
         max_index = np.unravel_index(
             np.argmax(highlight_overwritable, axis=None),

@@ -19,10 +19,9 @@ def filter_by_graph_method(corner_candidates, entry, number_of_nodes_to_filter):
 
     init_graph()
 
-    # TODO exponentielle suche for speedup
-    allowed_dist = 10
+    allowed_dist = 64
     while True:
-        contained_nodes = dfs(0, allowed_dist)
+        contained_nodes = bfs(0, allowed_dist, [])
 
         # not =, because 0 index is start(center)
         if len(contained_nodes) > number_of_nodes_to_filter:
@@ -32,7 +31,7 @@ def filter_by_graph_method(corner_candidates, entry, number_of_nodes_to_filter):
                 result.append(corner_candidates[contained_nodes[i + 1] - 1])
             return result
 
-        allowed_dist += 10
+        allowed_dist *= 2
 
 
 def init_graph():
@@ -49,7 +48,7 @@ def init_graph():
             weights_matrix[j, i] = dist
 
 
-def dfs(start, max_trav_dist, visited=[]):
+def bfs(start, max_trav_dist, visited=[]):
     global nodes_count
     global weights_matrix
 
@@ -59,7 +58,7 @@ def dfs(start, max_trav_dist, visited=[]):
     for neighbour in range(nodes_count):
         if (weights_matrix)[start, neighbour] < max_trav_dist:
             if neighbour not in visited:
-                dfs(start=neighbour, max_trav_dist=max_trav_dist, visited=visited)
+                bfs(start=neighbour, max_trav_dist=max_trav_dist, visited=visited)
 
     return visited
 
