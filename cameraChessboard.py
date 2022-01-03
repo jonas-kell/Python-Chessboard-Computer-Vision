@@ -22,7 +22,7 @@ while True:
             processed,
             (rows - 1, columns - 1),
             normalArrayToCV2CompatibleCorners(corners),
-            False,
+            len(corners) == ((rows - 1) * (columns - 1)),
         )
         cv2.imshow("frame", processed)
     else:

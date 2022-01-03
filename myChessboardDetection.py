@@ -194,19 +194,21 @@ def corner_heatmap(image, rows, columns, spread=1):
     # cv2.imshow("highlight", highlight.astype(np.uint8))  # can be deactivated
 
     highlight_overwritable = highlight.copy()
-    mask_size = h_dimension  # assumption of what is necessary to cover
-    corners = []
-    biggest = 0
-    smallest = 0
-    for i in range((rows - 1) * (columns - 1)):
+    mask_size = int(h_dimension / 1.5)  # assumption of what is necessary to cover
+    corner_candidates = []  # (value,x,y)
+    number_of_candidates_to_sample = int(
+        (rows - 1) * (columns - 1) * 1.3
+    )  # give the algorithm a bit of leeway
+    min_detection_value = 20
+    for i in range(number_of_candidates_to_sample):
         max_index = np.unravel_index(
             np.argmax(highlight_overwritable, axis=None),
             highlight_overwritable.shape,
         )
-        if i == 0:
-            biggest = highlight_overwritable[max_index]
-        if i == (rows - 1) * (columns - 1) - 1:
-            smallest = highlight_overwritable[max_index]
+        val = highlight_overwritable[max_index[0], max_index[1]]
+        if val <= min_detection_value:
+            break
+        corner_candidates.append((val, max_index[0], max_index[1]))
         highlight_overwritable[
             max(0, max_index[0] - mask_size) : min(
                 max_index[0] + mask_size, highlight_overwritable.shape[0]
@@ -215,14 +217,45 @@ def corner_heatmap(image, rows, columns, spread=1):
                 max_index[1] + mask_size, highlight_overwritable.shape[1]
             ),
         ] = 0
-        corners.append(max_index)
 
-    # print(
-    #     "Biggest %d, Smallest %d, Next %d"
-    #     % (biggest, smallest, np.max(highlight_overwritable))
-    # )
+    return (
+        extract_sorted_corners_form_candidates_simple(corner_candidates),
+        # ((workImage + 1) * 100).astype(np.uint8),
+        (highlight_overwritable).astype(np.uint8),
+    )
 
-    return corners, ((workImage + 1) * 100).astype(np.uint8)
+
+# corner_candidates: (value, x, y)
+def extract_sorted_corners_form_candidates_simple(corner_candidates):
+    if len(corner_candidates) == 0:
+        return [(0, 0)]
+
+    av_x = 0
+    av_y = 0
+    for cor in corner_candidates:
+        av_x += cor[1]
+        av_y += cor[2]
+    av_x = int(av_x / len(corner_candidates))
+    av_y = int(av_y / len(corner_candidates))
+
+    weighted_corners = []  # (weight,x,y)
+    for cor in corner_candidates:
+        val = cor[0]
+        diff = (cor[1] - av_x) ** 2 + (cor[2] - av_y) ** 2
+        weighted_corners.append((diff, cor[1], cor[2]))
+
+    weighted_corners.sort()  # gotta love python it is capable of just taking the first index for sorting automatically
+
+    unsorted_corners = []  # x,y
+    weighted_corners_len = len(weighted_corners)
+    for i in range((rows - 1) * (columns - 1)):
+        if i >= weighted_corners_len:
+            # too little corners detected
+            return unsorted_corners
+
+        unsorted_corners.append((weighted_corners[i][1], weighted_corners[i][2]))
+
+    return unsorted_corners
 
 
 if __name__ == "__main__":
