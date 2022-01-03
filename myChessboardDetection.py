@@ -196,18 +196,22 @@ def corner_heatmap(image, rows, columns, spread=1):
     # cv2.imshow("highlight", highlight.astype(np.uint8))  # can be deactivated
 
     mask_size = int(h_dimension / 1.5)  # assumption of what is necessary to cover
-    corner_candidates = []  # (value,x,y)
+    corner_candidates = []  # [(x,y),...]
     number_of_candidates_to_sample = int(
         (rows - 1) * (columns - 1) * 1.3
     )  # give the algorithm a bit of leeway
-    min_detection_value = 10
+    min_additional_detection_value = 30
+    max_corners_to_detect = (rows - 1) * (columns - 1)
     for i in range(number_of_candidates_to_sample):
         max_index = np.unravel_index(
             np.argmax(highlight, axis=None),
             highlight.shape,
         )
-        if highlight[max_index[0], max_index[1]] <= min_detection_value:
-            break
+        if (
+            i >= max_corners_to_detect
+            and highlight[max_index[0], max_index[1]] <= min_additional_detection_value
+        ):
+            break  # stop sampling
         corner_candidates.append((max_index[0], max_index[1]))
         highlight[
             max(0, max_index[0] - mask_size) : min(
@@ -225,10 +229,14 @@ def corner_heatmap(image, rows, columns, spread=1):
     )
 
 
-# corner_candidates: (x, y)
+# corner_candidates: # [(x,y),...]
 def extract_sorted_corners_form_candidates_graph(corner_candidates):
     if len(corner_candidates) == 0:
         return [(0, 0)]
+
+    if (rows - 1) * (columns - 1) >= len(corner_candidates):
+        # too little corners detected for further filtering. Need to return all
+        return corner_candidates
 
     av_x = 0
     av_y = 0
@@ -238,19 +246,8 @@ def extract_sorted_corners_form_candidates_graph(corner_candidates):
     av_x = int(av_x / len(corner_candidates))
     av_y = int(av_y / len(corner_candidates))
 
-    graph_corner_candidates = []  # x,y
-    weighted_corners_len = len(corner_candidates)
-    for i in range((rows - 1) * (columns - 1)):
-        if i >= weighted_corners_len:
-            # too little corners detected. Need to return all
-            return graph_corner_candidates
-
-        graph_corner_candidates.append(
-            (corner_candidates[i][0], corner_candidates[i][1])
-        )
-
     return filter_by_graph_method(
-        graph_corner_candidates, (av_x, av_y), (rows - 1) * (columns - 1)
+        corner_candidates, (av_x, av_y), (rows - 1) * (columns - 1)
     )
 
 

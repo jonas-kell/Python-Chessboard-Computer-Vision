@@ -39,7 +39,7 @@ def init_graph():
     global nodes
     global weights_matrix
 
-    weights_matrix = np.zeros((nodes_count, nodes_count), dtype=np.uint16)
+    weights_matrix = np.zeros((nodes_count, nodes_count), dtype=np.uint64)
     for i in range(nodes_count):
         for j in range(i + 1, nodes_count):
             dist = (nodes[i][0] - nodes[j][0]) ** 2 + (nodes[i][1] - nodes[j][1]) ** 2
@@ -65,5 +65,10 @@ def bfs(start, max_trav_dist, visited=[]):
 
 if __name__ == "__main__":
     test_nodes = [(10, 10), (40, 40), (20, 20), (0, 10)]
+    print(filter_by_graph_method(test_nodes, (0, 0), 3))
 
+    test_nodes = [(40, 40), (10, 10), (20, 20), (0, 10)]
+    print(filter_by_graph_method(test_nodes, (0, 0), 3))
+
+    test_nodes = [(0, 40000), (0, 1000), (0, 2000), (0, 3000)]
     print(filter_by_graph_method(test_nodes, (0, 0), 3))
