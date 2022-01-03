@@ -2,6 +2,8 @@ import numpy as np
 import cv2
 from numpy.core.defchararray import index
 
+from graphOperations import filter_by_graph_method
+
 rows = 6
 columns = 8
 
@@ -219,7 +221,7 @@ def corner_heatmap(image, rows, columns, spread=1):
         ] = 0
 
     return (
-        extract_sorted_corners_form_candidates_simple(corner_candidates),
+        extract_sorted_corners_form_candidates_graph(corner_candidates),
         # ((workImage + 1) * 100).astype(np.uint8),
         (highlight_overwritable).astype(np.uint8),
     )
@@ -256,6 +258,35 @@ def extract_sorted_corners_form_candidates_simple(corner_candidates):
         unsorted_corners.append((weighted_corners[i][1], weighted_corners[i][2]))
 
     return unsorted_corners
+
+
+# corner_candidates: (value, x, y)
+def extract_sorted_corners_form_candidates_graph(corner_candidates):
+    if len(corner_candidates) == 0:
+        return [(0, 0)]
+
+    av_x = 0
+    av_y = 0
+    for cor in corner_candidates:
+        av_x += cor[1]
+        av_y += cor[2]
+    av_x = int(av_x / len(corner_candidates))
+    av_y = int(av_y / len(corner_candidates))
+
+    graph_corner_candidates = []  # x,y
+    weighted_corners_len = len(corner_candidates)
+    for i in range((rows - 1) * (columns - 1)):
+        if i >= weighted_corners_len:
+            # too little corners detected. Need to return all
+            return graph_corner_candidates
+
+        graph_corner_candidates.append(
+            (corner_candidates[i][1], corner_candidates[i][2])
+        )
+
+    return filter_by_graph_method(
+        graph_corner_candidates, (av_x, av_y), (rows - 1) * (columns - 1)
+    )
 
 
 if __name__ == "__main__":
