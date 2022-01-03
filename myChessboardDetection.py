@@ -195,7 +195,6 @@ def corner_heatmap(image, rows, columns, spread=1):
     # )  # can be deactivated
     # cv2.imshow("highlight", highlight.astype(np.uint8))  # can be deactivated
 
-    highlight_overwritable = highlight.copy()
     mask_size = int(h_dimension / 1.5)  # assumption of what is necessary to cover
     corner_candidates = []  # (value,x,y)
     number_of_candidates_to_sample = int(
@@ -204,30 +203,29 @@ def corner_heatmap(image, rows, columns, spread=1):
     min_detection_value = 10
     for i in range(number_of_candidates_to_sample):
         max_index = np.unravel_index(
-            np.argmax(highlight_overwritable, axis=None),
-            highlight_overwritable.shape,
+            np.argmax(highlight, axis=None),
+            highlight.shape,
         )
-        val = highlight_overwritable[max_index[0], max_index[1]]
-        if val <= min_detection_value:
+        if highlight[max_index[0], max_index[1]] <= min_detection_value:
             break
-        corner_candidates.append((val, max_index[0], max_index[1]))
-        highlight_overwritable[
+        corner_candidates.append((max_index[0], max_index[1]))
+        highlight[
             max(0, max_index[0] - mask_size) : min(
-                max_index[0] + mask_size, highlight_overwritable.shape[0]
+                max_index[0] + mask_size, highlight.shape[0]
             ),
             max(0, max_index[1] - mask_size) : min(
-                max_index[1] + mask_size, highlight_overwritable.shape[1]
+                max_index[1] + mask_size, highlight.shape[1]
             ),
         ] = 0
 
     return (
         extract_sorted_corners_form_candidates_graph(corner_candidates),
         # ((workImage + 1) * 100).astype(np.uint8),
-        (highlight_overwritable).astype(np.uint8),
+        (highlight).astype(np.uint8),
     )
 
 
-# corner_candidates: (value, x, y)
+# corner_candidates: (x, y)
 def extract_sorted_corners_form_candidates_graph(corner_candidates):
     if len(corner_candidates) == 0:
         return [(0, 0)]
@@ -235,8 +233,8 @@ def extract_sorted_corners_form_candidates_graph(corner_candidates):
     av_x = 0
     av_y = 0
     for cor in corner_candidates:
-        av_x += cor[1]
-        av_y += cor[2]
+        av_x += cor[0]
+        av_y += cor[1]
     av_x = int(av_x / len(corner_candidates))
     av_y = int(av_y / len(corner_candidates))
 
@@ -248,7 +246,7 @@ def extract_sorted_corners_form_candidates_graph(corner_candidates):
             return graph_corner_candidates
 
         graph_corner_candidates.append(
-            (corner_candidates[i][1], corner_candidates[i][2])
+            (corner_candidates[i][0], corner_candidates[i][1])
         )
 
     return filter_by_graph_method(
