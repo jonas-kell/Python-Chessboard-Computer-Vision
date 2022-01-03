@@ -228,39 +228,6 @@ def corner_heatmap(image, rows, columns, spread=1):
 
 
 # corner_candidates: (value, x, y)
-def extract_sorted_corners_form_candidates_simple(corner_candidates):
-    if len(corner_candidates) == 0:
-        return [(0, 0)]
-
-    av_x = 0
-    av_y = 0
-    for cor in corner_candidates:
-        av_x += cor[1]
-        av_y += cor[2]
-    av_x = int(av_x / len(corner_candidates))
-    av_y = int(av_y / len(corner_candidates))
-
-    weighted_corners = []  # (weight,x,y)
-    for cor in corner_candidates:
-        val = cor[0]
-        diff = (cor[1] - av_x) ** 2 + (cor[2] - av_y) ** 2
-        weighted_corners.append((diff, cor[1], cor[2]))
-
-    weighted_corners.sort()  # gotta love python it is capable of just taking the first index for sorting automatically
-
-    unsorted_corners = []  # x,y
-    weighted_corners_len = len(weighted_corners)
-    for i in range((rows - 1) * (columns - 1)):
-        if i >= weighted_corners_len:
-            # too little corners detected
-            return unsorted_corners
-
-        unsorted_corners.append((weighted_corners[i][1], weighted_corners[i][2]))
-
-    return unsorted_corners
-
-
-# corner_candidates: (value, x, y)
 def extract_sorted_corners_form_candidates_graph(corner_candidates):
     if len(corner_candidates) == 0:
         return [(0, 0)]
