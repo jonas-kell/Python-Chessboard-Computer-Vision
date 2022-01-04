@@ -225,7 +225,11 @@ def corner_heatmap(image, rows, columns, spread=1):
 
     ret_cor_points = extract_sorted_corners_form_candidates_graph(corner_candidates)
 
-    if len(ret_cor_points) == (rows - 1) * (columns - 1):
+    if (
+        len(ret_cor_points) == (rows - 1) * (columns - 1)
+        and ret_cor_points[0][0] != 0
+        and ret_cor_points[0][1] != 0 # todo maybe better init-check
+    ):
         ret_cor_points = sort_corners(ret_cor_points, rows - 1, columns - 1)
         pass
 

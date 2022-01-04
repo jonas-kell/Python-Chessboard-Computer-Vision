@@ -61,12 +61,50 @@ def sort_corners(corners, rows, columns):
 
     M = cv2.getPerspectiveTransform(inputs, outputs)
 
-    transformed_corners = []
+    transformed_corners = []  # [((x_t, y_t), (x_o, y_o)), ...]
     for cor in corners:
-        transformed_corners.append(transform_point(cor, M))
+        transformed_corners.append((transform_point(cor, M), cor))
+
+    number_down = 0
+    for trans in transformed_corners:
+        if trans[0][0] < 2 * inner:
+            number_down += 1
+
+    # find orientation
+    if rows != columns:
+        if number_down == rows:
+            down_count = rows
+            side_count = columns
+        else:
+            down_count = columns
+            side_count = rows
+        if number_down != columns and number_down != rows:
+            print("Ordering-Error")
+    else:
+        down_count = rows
+        side_count = rows
+        if number_down != rows:
+            print("Ordering-Error")
 
     sorted_corners = []
-    return corners
+    for i in range(down_count):
+        down_lower_limit = i * side_count * const  # intentionally swapped
+        down_upper_limit = (i + 1) * side_count * const  # intentionally swapped
+        for j in range(side_count):
+            side_lower_limit = j * down_count * const  # intentionally swapped
+            side_upper_limit = (j + 1) * down_count * const  # intentionally swapped
+            for trans in transformed_corners:
+                look_at_x = trans[0][0]
+                look_at_y = trans[0][1]
+                if (
+                    look_at_x > side_lower_limit
+                    and look_at_x < side_upper_limit
+                    and look_at_y > down_lower_limit
+                    and look_at_y < down_upper_limit
+                ):
+                    sorted_corners.append(trans[1])
+
+    return sorted_corners
 
 
 # target order: lower_left -> lower_right -> upper_right -> upper_left

@@ -19,12 +19,12 @@ while True:
     if True:
         corners, processed = corner_heatmap(frame, rows, columns, 3)
         cv2.drawChessboardCorners(
-            processed,
+            frame,
             (rows - 1, columns - 1),
             normalArrayToCV2CompatibleCorners(corners),
             len(corners) == ((rows - 1) * (columns - 1)),
         )
-        cv2.imshow("frame", processed)
+        cv2.imshow("frame", frame)
     else:
         ret, corners = cv2.findChessboardCorners(frame, (rows - 1, columns - 1), None)
         cv2.drawChessboardCorners(frame, (rows - 1, columns - 1), corners, ret)
