@@ -47,7 +47,17 @@ def sort_corners(corners, rows, columns):
     assert rows * columns == len(corners)
 
     inputs = order_points(extract_corner_points(corners))
-    outputs = order_points([[0, 100], [100, 100], [100, 0], [0, 0]])
+    const = 10
+    inner = int(((rows + columns) / 4) * const)
+    outer = const * rows * columns - inner
+    outputs = order_points(
+        [
+            [inner, inner],
+            [outer, outer],
+            [outer, inner],
+            [inner, outer],
+        ]
+    )
 
     M = cv2.getPerspectiveTransform(inputs, outputs)
 
