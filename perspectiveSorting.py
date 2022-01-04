@@ -5,7 +5,7 @@ import numpy as np
 def extract_corner_points(corners):
     cnt = len(corners)
 
-    differences = np.zeros((cnt, cnt), dtype=np.uint32)
+    differences = np.zeros((cnt, cnt), dtype=np.uint64)
     for i in range(cnt):
         for j in range(i + 1, cnt):
             dist = (corners[i][0] - corners[j][0]) ** 2 + (
@@ -22,19 +22,14 @@ def extract_corner_points(corners):
     corner1 = max_index[0]
     corner2 = max_index[1]
 
-    differences_added = np.zeros(cnt, dtype=np.uint32)
+    differences_added = np.ones(cnt, dtype=np.uint64)
     for i in range(cnt):
-        differences_added[i] += differences[i, corner1]
-        differences_added[i] += differences[i, corner2]
-    differences_added[corner1] = 0
-    differences_added[corner2] = 0
+        differences_added[i] *= differences[i, corner1]
+        differences_added[i] *= differences[i, corner2]
     corner3 = np.argmax(differences_added, axis=None)
 
     for i in range(cnt):
-        differences_added[i] += differences[i, corner3]
-    differences_added[corner1] = 0
-    differences_added[corner2] = 0
-    differences_added[corner3] = 0
+        differences_added[i] *= differences[i, corner3]
     corner4 = np.argmax(differences_added, axis=None)
 
     return [
