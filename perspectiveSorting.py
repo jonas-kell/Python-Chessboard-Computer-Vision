@@ -40,28 +40,49 @@ def extract_corner_points(corners):
     ]
 
 
-def order_points(pts):  ## not reliable
-    # initialzie a list of coordinates that will be ordered
-    # such that the first entry in the list is the top-left,
-    # the second entry is the top-right, the third is the
-    # bottom-right, and the fourth is the bottom-left
-    rect = np.zeros((4, 2), dtype="float32")
+# corners: [(x,y), ...]
+# rows and columns HERE denotes the amount of POINTS used,
+# not the squares around
+def sort_corners(corners, rows, columns):
+    assert rows * columns == len(corners)
 
-    # the top-left point will have the smallest sum, whereas
-    # the bottom-right point will have the largest sum
-    s = pts.sum(axis=1)
+    inputs = order_points(extract_corner_points(corners))
+    outputs = order_points([[0, 100], [100, 100], [100, 0], [0, 0]])
 
-    rect[0] = pts[np.argmin(s)]
-    rect[2] = pts[np.argmax(s)]
+    M = cv2.getPerspectiveTransform(inputs, outputs)
 
-    # now, compute the difference between the points, the
-    # top-right point will have the smallest difference,
-    # whereas the bottom-left will have the largest difference
-    diff = np.diff(pts, axis=1)
-    rect[1] = pts[np.argmin(diff)]
-    rect[3] = pts[np.argmax(diff)]
+    transformed_corners = []
+    for cor in corners:
+        transformed_corners.append(transform_point(cor, M))
 
-    return rect
+    sorted_corners = []
+    return corners
+
+
+# target order: lower_left -> lower_right -> upper_right -> upper_left
+def order_points(pts):
+    assert len(pts) == 4
+
+    avg_x = 0
+    avg_y = 0
+    for i in range(4):
+        assert len(pts[i]) == 2
+        avg_x += pts[i][0]
+        avg_y += pts[i][1]
+    avg_x /= 4
+    avg_y /= 4
+
+    angles = []
+    for i in range(4):
+        angles.append((np.angle(complex(pts[i][0] - avg_x, pts[i][1] - avg_y)), i))
+    angles.sort()
+
+    out = np.zeros((4, 2), dtype=np.float32)
+    for i in range(4):
+        out[i][0] = pts[angles[i][1]][0]
+        out[i][1] = pts[angles[i][1]][1]
+
+    return out
 
 
 def transform_point(pt, matrix):
@@ -72,12 +93,12 @@ def transform_point(pt, matrix):
     transformed = np.matmul(matrix, vec)
     transformed = transformed * 1 / transformed[2]
 
-    return transformed[0:2, :]
+    return (transformed[0, 0], transformed[1, 0])
 
 
 if __name__ == "__main__":
-    inputs = np.array([[0, 2], [3, 4], [5, 1], [2, 0]], dtype=np.float32)
-    outputs = np.array([[0, 2], [3, 2], [3, 0], [0, 0]], dtype=np.float32)
+    inputs = order_points([[2, 0], [3, 4], [5, 1], [0, 2]])
+    outputs = order_points([[0, 2], [3, 2], [3, 0], [0, 0]])
 
     M = cv2.getPerspectiveTransform(inputs, outputs)
 

@@ -3,7 +3,7 @@ import cv2
 from numpy.core.defchararray import index
 
 from graphOperations import filter_by_graph_method
-from perspectiveSorting import extract_corner_points
+from perspectiveSorting import sort_corners
 
 rows = 6
 columns = 8
@@ -223,10 +223,14 @@ def corner_heatmap(image, rows, columns, spread=1):
             ),
         ] = 0
 
+    ret_cor_points = extract_sorted_corners_form_candidates_graph(corner_candidates)
+
+    if len(ret_cor_points) == (rows - 1) * (columns - 1):
+        ret_cor_points = sort_corners(ret_cor_points, rows - 1, columns - 1)
+        pass
+
     return (
-        extract_corner_points(
-            extract_sorted_corners_form_candidates_graph(corner_candidates)
-        ),
+        ret_cor_points,
         # ((workImage + 1) * 100).astype(np.uint8),
         (highlight).astype(np.uint8),
     )
