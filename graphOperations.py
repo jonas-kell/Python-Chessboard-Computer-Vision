@@ -39,7 +39,7 @@ def init_graph():
     global nodes
     global weights_matrix
 
-    weights_matrix = np.zeros((nodes_count, nodes_count), dtype=np.uint64)
+    weights_matrix = np.zeros((nodes_count, nodes_count), dtype=np.uint32)
     for i in range(nodes_count):
         for j in range(i + 1, nodes_count):
             dist = (nodes[i][0] - nodes[j][0]) ** 2 + (nodes[i][1] - nodes[j][1]) ** 2
