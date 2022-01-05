@@ -41,8 +41,6 @@ def extract_corner_points(corners):
 
 
 # corners: [(x,y), ...]
-# rows and columns HERE denotes the amount of POINTS used,
-# not the squares around
 def sort_corners(corners, rows, columns):
     assert rows * columns == len(corners)
 

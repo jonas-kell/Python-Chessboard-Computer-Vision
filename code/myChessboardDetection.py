@@ -1,12 +1,8 @@
 import numpy as np
 import cv2
-from numpy.core.defchararray import index
 
 from graphOperations import filter_by_graph_method
 from perspectiveSorting import sort_corners
-
-rows = 6
-columns = 8
 
 
 def generate_mask_array(template, spread):
@@ -56,10 +52,10 @@ def corner_heatmap(image, rows, columns, spread=1):
     spread = int(spread)
     if spread < 1:
         raise Exception("Spread needs to be greater than 1")
-    if rows < 2:
-        raise Exception("rows need to be at least 2")
-    if columns < 2:
-        raise Exception("columns need to be at least 2")
+    if rows < 1:
+        raise Exception("rows need to be at least 1")
+    if columns < 1:
+        raise Exception("columns need to be at least 1")
 
     m_c_template = np.array(
         [
@@ -191,18 +187,13 @@ def corner_heatmap(image, rows, columns, spread=1):
         - np.abs(highlight_up)
     )
 
-    # cv2.imshow(
-    #     "Pre-processed", 100 * (1 + workImage.astype(np.uint8))
-    # )  # can be deactivated
-    # cv2.imshow("highlight", highlight.astype(np.uint8))  # can be deactivated
-
     mask_size = int(h_dimension / 1.5)  # assumption of what is necessary to cover
     corner_candidates = []  # [(x,y),...]
     number_of_candidates_to_sample = int(
-        (rows - 1) * (columns - 1) * 1.3
+        rows * columns * 1.3
     )  # give the algorithm a bit of leeway
     min_additional_detection_value = 30
-    max_corners_to_detect = (rows - 1) * (columns - 1)
+    max_corners_to_detect = rows * columns
     for i in range(number_of_candidates_to_sample):
         max_index = np.unravel_index(
             np.argmax(highlight, axis=None),
@@ -223,14 +214,16 @@ def corner_heatmap(image, rows, columns, spread=1):
             ),
         ] = 0
 
-    ret_cor_points = extract_sorted_corners_form_candidates_graph(corner_candidates)
+    ret_cor_points = extract_sorted_corners_form_candidates_graph(
+        corner_candidates, rows, columns
+    )
 
     if (
-        len(ret_cor_points) == (rows - 1) * (columns - 1)
+        len(ret_cor_points) == rows * columns
         and ret_cor_points[0][0] != 0
-        and ret_cor_points[0][1] != 0 # todo maybe better init-check
+        and ret_cor_points[0][1] != 0  # todo maybe better init-check
     ):
-        ret_cor_points = sort_corners(ret_cor_points, rows - 1, columns - 1)
+        ret_cor_points = sort_corners(ret_cor_points, rows, columns)
         pass
 
     return (
@@ -241,11 +234,11 @@ def corner_heatmap(image, rows, columns, spread=1):
 
 
 # corner_candidates: # [(x,y),...]
-def extract_sorted_corners_form_candidates_graph(corner_candidates):
+def extract_sorted_corners_form_candidates_graph(corner_candidates, rows, columns):
     if len(corner_candidates) == 0:
         return [(0, 0)]
 
-    if (rows - 1) * (columns - 1) >= len(corner_candidates):
+    if rows * columns >= len(corner_candidates):
         # too little corners detected for further filtering. Need to return all
         return corner_candidates
 
@@ -257,49 +250,52 @@ def extract_sorted_corners_form_candidates_graph(corner_candidates):
     av_x = int(av_x / len(corner_candidates))
     av_y = int(av_y / len(corner_candidates))
 
-    return filter_by_graph_method(
-        corner_candidates, (av_x, av_y), (rows - 1) * (columns - 1)
-    )
+    return filter_by_graph_method(corner_candidates, (av_x, av_y), rows * columns)
 
 
+# Testing on single images
 if __name__ == "__main__":
+    # define size of the checkerboard
+    rows = 5
+    columns = 7
+
     # load image
-    # image = cv2.imread("./easy.png")
-    # image = cv2.imread("./easy30.png")
-    # image = cv2.imread("./easy45.png")
-    # image = cv2.imread("./photo.png")
-    image = cv2.imread("./photo45.png")
+    # image = cv2.imread("./../resources/easy.png")
+    # image = cv2.imread("./../resources/easy30.png")
+    # image = cv2.imread("./../resources/easy45.png")
+    # image = cv2.imread("./../resources/photo.png")
+    image = cv2.imread("./../resources/photo45.png")
     # image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
     if image is None:
         raise Exception("Image not found")
 
-    corners, processed = corner_heatmap(image, rows, columns, 6)
+    use_own_solution = True
+    show_processed = False
+    if use_own_solution:
+        title = "My Detection"
+        corners, processed = corner_heatmap(image, rows, columns, 6)
 
-    # display image
-    # cv2.namedWindow("Corners", cv2.WINDOW_NORMAL)
-    # cv2.resizeWindow("Corners", (300, 600))
-    imageWithCorners = cv2.drawChessboardCorners(
-        image,
-        (rows - 1, columns - 1),
-        normalArrayToCV2CompatibleCorners(corners),
-        True,
-    )
-    cv2.imshow("Corners", processed)
+        corners = normalArrayToCV2CompatibleCorners(corners)
+        ret = len(corners) == rows * columns
+
+        if show_processed:
+            image = processed
+    else:
+        # compare with library
+        title = "CV2 Detection"
+        ret, corners = cv2.findChessboardCorners(image, (rows, columns), None)
+
+        if not ret:
+            print("CV2 is bad...")
+
+    # show detection
+    cv2.drawChessboardCorners(image, (rows, columns), corners, ret)
+
+    cv2.namedWindow(title, cv2.WINDOW_NORMAL)
+    cv2.resizeWindow(title, (600, 600))
+    cv2.imshow(title, image)
 
     # cleanup
     cv2.waitKey()
     cv2.destroyAllWindows()
-
-    # compare with library
-    ret, corners = cv2.findChessboardCorners(image, (rows - 1, columns - 1), None)
-
-    if ret == False:
-        cv2.drawChessboardCorners(image, (rows - 1, columns - 1), corners, ret)
-        # cv2.namedWindow("cv2:", cv2.WINDOW_NORMAL)
-        # cv2.resizeWindow("cv2:", (300, 600))
-        cv2.imshow("cv2:", image)
-        cv2.waitKey()
-        cv2.destroyAllWindows()
-    else:
-        print("CV2 is bad...")
