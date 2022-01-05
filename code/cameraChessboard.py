@@ -1,5 +1,8 @@
 import cv2
-from myChessboardDetection import corner_heatmap, normalArrayToCV2CompatibleCorners
+from myChessboardDetection import (
+    find_chessboard_corners,
+    tuple_array_to_cv2_compatible_corners,
+)
 
 if __name__ == "__main__":
     # define size of the checkerboard
@@ -19,9 +22,9 @@ if __name__ == "__main__":
         if use_own_solution:
             # own chessboard corner detection
             title = "My Detection"
-            corners, processed = corner_heatmap(frame, rows, columns, 3)
+            corners, processed = find_chessboard_corners(frame, rows, columns, 3)
 
-            corners = normalArrayToCV2CompatibleCorners(corners)
+            corners = tuple_array_to_cv2_compatible_corners(corners)
             ret = len(corners) == rows * columns
 
             if show_processed:

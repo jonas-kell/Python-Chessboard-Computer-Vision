@@ -30,7 +30,8 @@ def generate_mask_array(template, spread):
     return new_mask
 
 
-def normalArrayToCV2CompatibleCorners(array):
+# array [(x,y), ...]
+def tuple_array_to_cv2_compatible_corners(array):
     length = len(array)
     assert length > 0
     tuple_length = len(array[0])
@@ -42,7 +43,9 @@ def normalArrayToCV2CompatibleCorners(array):
     return result
 
 
-def corner_heatmap(image, rows, columns, spread=1):
+# main detection function, should basically perform like
+# cv2.findChessboardCorners, but cooler, because written by me
+def find_chessboard_corners(image, rows, columns, spread=1):
     if len(image.shape) == 2:
         image_channels = 1
     elif len(image.shape) > 2:
@@ -274,9 +277,9 @@ if __name__ == "__main__":
     show_processed = False
     if use_own_solution:
         title = "My Detection"
-        corners, processed = corner_heatmap(image, rows, columns, 6)
+        corners, processed = find_chessboard_corners(image, rows, columns, 6)
 
-        corners = normalArrayToCV2CompatibleCorners(corners)
+        corners = tuple_array_to_cv2_compatible_corners(corners)
         ret = len(corners) == rows * columns
 
         if show_processed:
