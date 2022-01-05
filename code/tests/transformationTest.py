@@ -39,6 +39,8 @@ test = [
     (320.00000000000006, 30.00000000000002),
 ]
 
+# display the results of the projective-transformation in a window for inspection
+
 canvas = np.zeros((10 * 5 * 7, 10 * 5 * 7), dtype=np.uint8)
 
 for cor in test:
